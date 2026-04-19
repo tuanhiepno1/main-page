@@ -13,7 +13,7 @@ const ADMIN_SESSION_KEY = "employee-gateway-admin-session";
 const BRAND = {
   projectName: "Employee Gateway",
   description:
-    "Choose the internal page you need and move there quickly from one central gateway.",
+    "Select the internal portal you need and navigate quickly from a single central company hub.",
   logoSrc: "/teampl.png",
   logoAlt: "Company logo",
 };
@@ -212,19 +212,13 @@ const STATUS_STYLES = {
 };
 
 function getInitialTheme() {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
+  if (typeof window === "undefined") return "light";
   const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
   return storedTheme === "dark" ? "dark" : "light";
 }
 
 function getInitialRoute() {
-  if (typeof window === "undefined") {
-    return "home";
-  }
-
+  if (typeof window === "undefined") return "home";
   return window.location.pathname === "/admin" ? "admin" : "home";
 }
 
@@ -241,7 +235,7 @@ function normalizePortal(portal, index = 0) {
   const summary = portal.summary?.trim() || "Open this internal page.";
   const href = portal.href || "#";
   const eyebrow = portal.eyebrow?.trim() || "General";
-  const action = portal.action?.trim() || `Open ${title}`;
+  const action = portal.action?.trim() || `Access ${title}`;
   const tone = PORTAL_TONE_OPTIONS.includes(portal.tone) ? portal.tone : "blue";
   const status = PORTAL_STATUS_OPTIONS.includes(portal.status)
     ? portal.status
@@ -260,32 +254,12 @@ function normalizePortal(portal, index = 0) {
 }
 
 function loadPortals() {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined")
     return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  }
-
   try {
     const stored = window.localStorage.getItem(PORTALS_STORAGE_KEY);
-
-    // Nếu không có dữ liệu HOẶC bạn muốn ép cập nhật khi sửa code:
-    if (!stored) {
-      return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-    }
-
+    if (!stored) return DEFAULT_PORTAL_LINKS.map(normalizePortal);
     const parsed = JSON.parse(stored);
-
-    // Kiểm tra xem dữ liệu cũ có bị lỗi '#' không (logic tự động sửa sai)
-    const hasBadLinks = parsed.some(
-      (p) => p.href === "#" && p.id === "incident-report",
-    );
-    if (hasBadLinks) {
-      console.warn(
-        "Detected old data with '#' links, resetting to defaults...",
-      );
-      window.localStorage.removeItem(PORTALS_STORAGE_KEY);
-      return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-    }
-
     return parsed.map(normalizePortal);
   } catch {
     return DEFAULT_PORTAL_LINKS.map(normalizePortal);
@@ -293,31 +267,23 @@ function loadPortals() {
 }
 
 function persistPortals(portals) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
+  if (typeof window === "undefined") return;
   window.localStorage.setItem(PORTALS_STORAGE_KEY, JSON.stringify(portals));
 }
 
 function LogoMark({ styles, theme }) {
   return (
     <div
-      className={`relative flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border sm:h-36 sm:w-36 ${styles.logoWrap}`}
+      className={`relative flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-[32px] border sm:h-44 sm:w-44 ${styles.logoWrap}`}
     >
-      {/* Hiệu ứng ánh sáng nền */}
       <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),transparent_58%)]" />
-
-      {/* Viền trong (Inset border) */}
       <div
-        className={`absolute inset-[5px] rounded-[20px] border ${styles.logoInset}`}
+        className={`absolute inset-[8px] rounded-[24px] border ${styles.logoInset}`}
       />
-
-      {/* Logo chính */}
       <img
         src={BRAND.logoSrc}
         alt={BRAND.logoAlt}
-        className={`relative z-10 h-24 w-24 object-contain sm:h-28 sm:w-28 transition-all duration-500 ${
+        className={`relative z-10 h-32 w-32 object-contain sm:h-36 sm:w-36 transition-all duration-500 ${
           theme === "dark"
             ? "brightness-0 invert opacity-90 hover:opacity-100"
             : "brightness-100"
@@ -330,18 +296,17 @@ function LogoMark({ styles, theme }) {
 function ThemeSwitch({ theme, setTheme, styles }) {
   return (
     <div
-      className={`inline-flex items-center gap-1 rounded-full border p-1 ${styles.toggleWrap}`}
+      className={`inline-flex items-center gap-1 rounded-full border p-1.5 ${styles.toggleWrap}`}
     >
       {["light", "dark"].map((option) => {
         const isActive = option === theme;
-
         return (
           <button
             key={option}
             type="button"
             onClick={() => setTheme(option)}
             aria-pressed={isActive}
-            className={`rounded-full px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] transition ${
+            className={`rounded-full px-6 py-3 font-mono text-[12px] uppercase tracking-[0.22em] transition ${
               isActive ? styles.toggleActive : styles.toggleIdle
             }`}
           >
@@ -356,15 +321,15 @@ function ThemeSwitch({ theme, setTheme, styles }) {
 function SummaryCard({ label, value, styles }) {
   return (
     <div
-      className={`rounded-[24px] border px-5 py-4 backdrop-blur transition-colors duration-300 ${styles.summaryCard}`}
+      className={`rounded-[32px] border px-8 py-7 backdrop-blur transition-colors duration-300 ${styles.summaryCard}`}
     >
       <p
-        className={`font-mono text-[11px] uppercase tracking-[0.22em] ${styles.summaryLabel}`}
+        className={`font-mono text-[12px] uppercase tracking-[0.22em] ${styles.summaryLabel}`}
       >
         {label}
       </p>
       <p
-        className={`mt-2 font-display text-2xl font-semibold ${styles.summaryValue}`}
+        className={`mt-3 font-display text-4xl font-semibold ${styles.summaryValue}`}
       >
         {value}
       </p>
@@ -373,93 +338,87 @@ function SummaryCard({ label, value, styles }) {
 }
 
 function PortalCard({ portal, index, theme, styles }) {
-  console.log("Portal data:", portal.title, portal.href);
   const tone = TONE_STYLES[theme][portal.tone];
   const status = STATUS_STYLES[theme][portal.status];
   const isOnline = portal.status === "online";
 
-  const sharedClassName = `group relative overflow-hidden rounded-[32px] border p-6 backdrop-blur transition duration-300 sm:p-7 ${
+  const sharedClassName = `group relative overflow-hidden rounded-[40px] border p-8 backdrop-blur transition duration-300 sm:p-10 ${
     isOnline
-      ? "cursor-pointer hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.12)]"
+      ? "cursor-pointer hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(15,23,42,0.15)]"
       : "cursor-not-allowed opacity-90 pointer-events-none"
   } ${styles.card} ${tone.border}`;
 
   const cardContent = (
-    <div className="relative flex h-full flex-col gap-8">
-      {/* header */}
-      <div className="flex items-start justify-between gap-4">
+    <div className="relative flex h-full flex-col gap-10">
+      <div className="flex items-start justify-between gap-6">
         <div>
           <p
-            className={`font-mono text-[11px] uppercase tracking-[0.24em] ${styles.overline}`}
+            className={`font-mono text-[12px] uppercase tracking-[0.24em] ${styles.overline}`}
           >
             {portal.eyebrow}
           </p>
-
           <h2
-            className={`mt-3 font-display text-3xl font-semibold tracking-tight ${styles.title}`}
+            className={`mt-4 font-display text-4xl font-semibold tracking-tight ${styles.title}`}
           >
             {portal.title}
           </h2>
         </div>
-
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-3">
           <div
-            className={`rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] ${styles.cardBadge}`}
+            className={`rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.2em] ${styles.cardBadge}`}
           >
             {(index + 1).toString().padStart(2, "0")}
           </div>
-
           <div
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] ${status.badge}`}
+            className={`inline-flex items-center gap-2.5 rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.18em] ${status.badge}`}
           >
-            <span className={`h-2 w-2 rounded-full ${status.dot}`} />
+            <span className={`h-2.5 w-2.5 rounded-full ${status.dot}`} />
             {status.label}
           </div>
         </div>
       </div>
-
-      {/* body */}
       <p
-        className={`max-w-md text-sm leading-7 sm:text-base sm:leading-8 ${styles.cardText}`}
+        className={`max-w-2xl text-base leading-8 sm:text-lg sm:leading-9 ${styles.cardText}`}
       >
         {portal.summary}
       </p>
-
-      {/* footer */}
       <div
-        className={`mt-auto flex items-center justify-between gap-4 border-t pt-5 ${styles.cardBorder}`}
+        className={`mt-auto flex items-center justify-between gap-6 border-t pt-7 ${styles.cardBorder}`}
       >
         <span
-          className={`font-mono text-[11px] uppercase tracking-[0.22em] ${styles.cardMeta}`}
+          className={`font-mono text-[12px] uppercase tracking-[0.22em] ${styles.cardMeta}`}
         >
-          {isOnline ? "Available now" : "Temporarily unavailable"}
+          {isOnline ? "Available" : "Maintenance"}
         </span>
-
         {isOnline ? (
           <span
-            className={`inline-flex items-center gap-3 text-sm font-semibold transition duration-300 ${styles.actionBase} ${tone.action}`}
+            className={`inline-flex items-center gap-4 text-base font-semibold transition duration-300 ${styles.actionBase} ${tone.action}`}
           >
             <span>{portal.action}</span>
             <span
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-base leading-none`}
+              className={`inline-flex h-11 w-11 items-center justify-center rounded-full border text-lg leading-none`}
             >
               {"->"}
             </span>
           </span>
         ) : (
           <span
-            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${styles.disabledAction}`}
+            className={`inline-flex items-center gap-3 rounded-full border px-5 py-3 text-base font-semibold ${styles.disabledAction}`}
           >
-            <span>Under maintenance</span>
+            <span>Paused</span>
           </span>
         )}
       </div>
     </div>
   );
 
-  // Nền chung cho cả hai trường hợp
-  const backgroundLayers = (
-    <>
+  return (
+    <a
+      href={isOnline ? portal.href : undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={sharedClassName}
+    >
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tone.accent}`}
       />
@@ -467,30 +426,10 @@ function PortalCard({ portal, index, theme, styles }) {
         className={`pointer-events-none absolute inset-x-0 top-0 h-px ${styles.cardTopLine}`}
       />
       <div
-        className={`pointer-events-none absolute left-7 top-0 h-1.5 w-24 rounded-b-full ${styles.cardCap}`}
+        className={`pointer-events-none absolute left-10 top-0 h-2 w-32 rounded-b-full ${styles.cardCap}`}
       />
-    </>
-  );
-
-  if (isOnline) {
-    return (
-      <a
-        href={portal.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={sharedClassName}
-      >
-        {backgroundLayers}
-        {cardContent}
-      </a>
-    );
-  }
-
-  return (
-    <div className={sharedClassName}>
-      {backgroundLayers}
       {cardContent}
-    </div>
+    </a>
   );
 }
 
@@ -499,77 +438,67 @@ function AdminLogin({ styles, onLogin, error }) {
     username: "",
     password: "",
   });
-
   function handleSubmit(event) {
     event.preventDefault();
     onLogin(credentials);
   }
 
   return (
-    <div className={`rounded-[32px] border p-6 sm:p-8 ${styles.panel}`}>
+    <div className={`rounded-[40px] border p-10 sm:p-14 ${styles.panel}`}>
       <p
-        className={`font-mono text-[11px] uppercase tracking-[0.24em] ${styles.overline}`}
+        className={`font-mono text-[12px] uppercase tracking-[0.24em] ${styles.overline}`}
       >
-        Admin access
+        Admin Access
       </p>
       <h2
-        className={`mt-3 font-display text-3xl font-semibold ${styles.title}`}
+        className={`mt-5 font-display text-4xl font-semibold ${styles.title}`}
       >
-        Sign in to manage portal links
+        Admin Sign In
       </h2>
-      <p className={`mt-3 text-sm leading-7 ${styles.body}`}>
-        Admin access lets you add, edit, and remove destination cards for the
-        internal gateway.
+      <p className={`mt-5 text-lg leading-8 ${styles.body}`}>
+        Sign in with your admin account to manage portal links.
       </p>
-
-      <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+      <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
         <div>
           <label
-            className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+            className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
           >
             Username
           </label>
           <input
             type="text"
             value={credentials.username}
-            onChange={(event) =>
-              setCredentials((current) => ({
-                ...current,
-                username: event.target.value,
-              }))
+            onChange={(e) =>
+              setCredentials((c) => ({ ...c, username: e.target.value }))
             }
-            className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-            placeholder="Enter admin username"
+            className={`w-full rounded-2xl border px-6 py-4 text-lg outline-none transition ${styles.input}`}
+            placeholder="Enter username"
           />
         </div>
-
         <div>
           <label
-            className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+            className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
           >
             Password
           </label>
           <input
             type="password"
             value={credentials.password}
-            onChange={(event) =>
-              setCredentials((current) => ({
-                ...current,
-                password: event.target.value,
-              }))
+            onChange={(e) =>
+              setCredentials((c) => ({ ...c, password: e.target.value }))
             }
-            className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-            placeholder="Enter admin password"
+            className={`w-full rounded-2xl border px-6 py-4 text-lg outline-none transition ${styles.input}`}
+            placeholder="Enter password"
           />
         </div>
-
-        {error ? <p className="text-sm text-red-500">{error}</p> : null}
-
+        {error ? (
+          <p className="text-base text-red-500 font-medium">{error}</p>
+        ) : null}
         <button
           type="submit"
-          className={`inline-flex rounded-full border px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] transition ${styles.primaryButton}`}
+          className={`inline-flex rounded-full border px-8 py-4 font-mono text-[12px] uppercase tracking-[0.22em] transition ${styles.primaryButton}`}
         >
-          Admin login
+          Sign In
         </button>
       </form>
     </div>
@@ -589,311 +518,184 @@ function AdminEditor({
   onLogout,
 }) {
   const isEditing = Boolean(editingId);
-
   function startEdit(portal) {
     setEditingId(portal.id);
-    setFormState({
-      id: portal.id,
-      title: portal.title,
-      eyebrow: portal.eyebrow,
-      summary: portal.summary,
-      href: portal.href,
-      status: portal.status,
-      tone: portal.tone,
-      action: portal.action,
-    });
+    setFormState({ ...portal });
   }
-
   function cancelEdit() {
     setEditingId("");
     setFormState(EMPTY_FORM);
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-      <section className={`rounded-[32px] border p-6 sm:p-8 ${styles.panel}`}>
-        <div className="flex items-start justify-between gap-4">
+    <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
+      <section className={`rounded-[40px] border p-10 sm:p-14 ${styles.panel}`}>
+        <div className="flex items-start justify-between gap-6">
           <div>
             <p
-              className={`font-mono text-[11px] uppercase tracking-[0.24em] ${styles.overline}`}
+              className={`font-mono text-[12px] uppercase tracking-[0.24em] ${styles.overline}`}
             >
-              Admin panel
+              Admin Panel
             </p>
             <h2
-              className={`mt-3 font-display text-3xl font-semibold ${styles.title}`}
+              className={`mt-5 font-display text-4xl font-semibold ${styles.title}`}
             >
-              {isEditing ? "Edit portal" : "Add a new portal"}
+              {isEditing ? "Update Portal" : "Add New Portal"}
             </h2>
           </div>
-
           <button
             type="button"
             onClick={onLogout}
-            className={`rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] transition ${styles.ghostButton}`}
+            className={`rounded-full border px-6 py-3 font-mono text-[12px] uppercase tracking-[0.2em] transition ${styles.ghostButton}`}
           >
             Logout
           </button>
         </div>
-
-        <form className="mt-8 space-y-4" onSubmit={onSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <form className="mt-10 space-y-6" onSubmit={onSubmit}>
+          <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label
-                className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+                className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
               >
                 Title
               </label>
               <input
                 type="text"
                 value={formState.title}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
+                onChange={(e) =>
+                  setFormState((c) => ({ ...c, title: e.target.value }))
                 }
-                className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-                placeholder="Knowledge Base"
+                className={`w-full rounded-2xl border px-5 py-4 text-lg outline-none transition ${styles.input}`}
+                placeholder="e.g. Knowledge Base"
               />
             </div>
-
             <div>
               <label
-                className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+                className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
               >
                 Category
               </label>
               <input
                 type="text"
                 value={formState.eyebrow}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    eyebrow: event.target.value,
-                  }))
+                onChange={(e) =>
+                  setFormState((c) => ({ ...c, eyebrow: e.target.value }))
                 }
-                className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-                placeholder="Support"
+                className={`w-full rounded-2xl border px-5 py-4 text-lg outline-none transition ${styles.input}`}
+                placeholder="e.g. Support"
               />
             </div>
           </div>
-
           <div>
             <label
-              className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+              className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
             >
-              Summary
+              Description
             </label>
             <textarea
               value={formState.summary}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  summary: event.target.value,
-                }))
+              onChange={(e) =>
+                setFormState((c) => ({ ...c, summary: e.target.value }))
               }
-              className={`min-h-[120px] w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-              placeholder="Explain what this internal page is used for."
+              className={`min-h-[160px] w-full rounded-2xl border px-5 py-4 text-lg outline-none transition ${styles.input}`}
+              placeholder="Explain what this portal is for..."
             />
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label
-                className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+                className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
               >
-                Link
+                URL Path
               </label>
               <input
                 type="text"
                 value={formState.href}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    href: event.target.value,
-                  }))
+                onChange={(e) =>
+                  setFormState((c) => ({ ...c, href: e.target.value }))
                 }
-                className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-                placeholder="/knowledge-base"
+                className={`w-full rounded-2xl border px-5 py-4 text-lg outline-none transition ${styles.input}`}
+                placeholder="https://..."
               />
             </div>
-
             <div>
               <label
-                className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
+                className={`mb-3 block font-mono text-[12px] uppercase tracking-[0.2em] ${styles.overline}`}
               >
-                Action label
+                Action Text
               </label>
               <input
                 type="text"
                 value={formState.action}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    action: event.target.value,
-                  }))
+                onChange={(e) =>
+                  setFormState((c) => ({ ...c, action: e.target.value }))
                 }
-                className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-                placeholder="Open Knowledge Base"
+                className={`w-full rounded-2xl border px-5 py-4 text-lg outline-none transition ${styles.input}`}
+                placeholder="e.g. Access Now"
               />
             </div>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
-              >
-                Status
-              </label>
-              <select
-                value={formState.status}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    status: event.target.value,
-                  }))
-                }
-                className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-              >
-                {PORTAL_STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                className={`mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
-              >
-                Tone
-              </label>
-              <select
-                value={formState.tone}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    tone: event.target.value,
-                  }))
-                }
-                className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${styles.input}`}
-              >
-                {PORTAL_TONE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3 pt-2">
+          <div className="flex flex-wrap gap-4 pt-4">
             <button
               type="submit"
-              className={`rounded-full border px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] transition ${styles.primaryButton}`}
+              className={`rounded-full border px-8 py-4 font-mono text-[12px] uppercase tracking-[0.22em] transition ${styles.primaryButton}`}
             >
-              {isEditing ? "Save changes" : "Add portal"}
+              {isEditing ? "Save Changes" : "Add Portal"}
             </button>
-
-            {isEditing ? (
+            {isEditing && (
               <button
                 type="button"
                 onClick={cancelEdit}
-                className={`rounded-full border px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] transition ${styles.ghostButton}`}
+                className={`rounded-full border px-8 py-4 font-mono text-[12px] uppercase tracking-[0.22em] transition ${styles.ghostButton}`}
               >
                 Cancel
               </button>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={onResetDefaults}
-              className={`rounded-full border px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] transition ${styles.subtleButton}`}
-            >
-              Reset defaults
-            </button>
+            )}
           </div>
         </form>
       </section>
-
-      <section className={`rounded-[32px] border p-6 sm:p-8 ${styles.panel}`}>
+      <section className={`rounded-[40px] border p-10 sm:p-14 ${styles.panel}`}>
         <p
-          className={`font-mono text-[11px] uppercase tracking-[0.24em] ${styles.overline}`}
+          className={`font-mono text-[12px] uppercase tracking-[0.24em] ${styles.overline}`}
         >
-          Current portals
+          Active Portals
         </p>
         <h2
-          className={`mt-3 font-display text-3xl font-semibold ${styles.title}`}
+          className={`mt-5 font-display text-4xl font-semibold ${styles.title}`}
         >
-          Manage existing entries
+          Manage Entries
         </h2>
-        <p className={`mt-3 text-sm leading-7 ${styles.body}`}>
-          Changes are saved in this browser through localStorage. This admin
-          screen is front-end only and should be replaced with real backend
-          authentication later.
-        </p>
-
-        <div className="mt-8 space-y-4">
-          {portals.map((portal) => (
+        <div className="mt-10 space-y-6">
+          {portals.map((p) => (
             <div
-              key={portal.id}
-              className={`rounded-[24px] border p-5 transition-colors duration-300 ${styles.summaryCard}`}
+              key={p.id}
+              className={`rounded-[32px] border p-7 ${styles.summaryCard}`}
             >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p
-                    className={`font-mono text-[11px] uppercase tracking-[0.2em] ${styles.overline}`}
-                  >
-                    {portal.eyebrow}
-                  </p>
+              <div className="flex flex-wrap items-center justify-between gap-6">
+                <div className="max-w-md">
                   <h3
-                    className={`mt-2 font-display text-2xl font-semibold ${styles.title}`}
+                    className={`font-display text-2xl font-semibold ${styles.title}`}
                   >
-                    {portal.title}
+                    {p.title}
                   </h3>
-                  <p
-                    className={`mt-3 max-w-xl text-sm leading-7 ${styles.body}`}
-                  >
-                    {portal.summary}
+                  <p className={`mt-2 text-base line-clamp-1 ${styles.body}`}>
+                    {p.summary}
                   </p>
                 </div>
-
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-3">
                   <button
-                    type="button"
-                    onClick={() => startEdit(portal)}
-                    className={`rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] transition ${styles.ghostButton}`}
+                    onClick={() => startEdit(p)}
+                    className={`rounded-full border px-5 py-2.5 text-[12px] uppercase font-bold transition ${styles.ghostButton}`}
                   >
                     Edit
                   </button>
                   <button
-                    type="button"
-                    onClick={() => onDelete(portal.id)}
-                    className={`rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] transition ${styles.dangerButton}`}
+                    onClick={() => onDelete(p.id)}
+                    className={`rounded-full border px-5 py-2.5 text-[12px] uppercase font-bold transition ${styles.dangerButton}`}
                   >
                     Delete
                   </button>
                 </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span
-                  className={`rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] ${styles.cardBadge}`}
-                >
-                  {portal.status}
-                </span>
-                <span
-                  className={`rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] ${styles.cardBadge}`}
-                >
-                  {portal.tone}
-                </span>
-                <span
-                  className={`rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] ${styles.cardBadge}`}
-                >
-                  {portal.href}
-                </span>
               </div>
             </div>
           ))}
@@ -908,24 +710,19 @@ export default function App() {
   const [route, setRoute] = useState(getInitialRoute);
   const [portals, setPortals] = useState(loadPortals);
   const [isAdminAuthed, setIsAdminAuthed] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
+    if (typeof window === "undefined") return false;
     return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
   });
   const [loginError, setLoginError] = useState("");
   const [editingId, setEditingId] = useState("");
   const [formState, setFormState] = useState(EMPTY_FORM);
-
   const styles = THEME_STYLES[theme];
 
   const summary = useMemo(
     () => ({
       total: portals.length,
-      online: portals.filter((portal) => portal.status === "online").length,
-      maintenance: portals.filter((portal) => portal.status === "maintenance")
-        .length,
+      online: portals.filter((p) => p.status === "online").length,
+      maintenance: portals.filter((p) => p.status === "maintenance").length,
     }),
     [portals],
   );
@@ -933,20 +730,13 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     document.documentElement.style.colorScheme = theme;
-    document.body.style.backgroundColor =
-      theme === "dark" ? "#10182b" : "#f7f9fc";
-    document.body.style.color = theme === "dark" ? "#f8fafc" : "#0f172a";
   }, [theme]);
 
-  useEffect(() => {
-    persistPortals(portals);
-  }, [portals]);
+  useEffect(() => persistPortals(portals), [portals]);
 
   useEffect(() => {
-    function handlePopState() {
+    const handlePopState = () =>
       setRoute(window.location.pathname === "/admin" ? "admin" : "home");
-    }
-
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
@@ -957,136 +747,87 @@ export default function App() {
     setRoute(nextRoute);
   }
 
-  function handleAdminLogin(credentials) {
-    const isValid =
-      credentials.username === ADMIN_CONFIG.username &&
-      credentials.password === ADMIN_CONFIG.password;
-
-    if (!isValid) {
-      setLoginError("Invalid admin credentials.");
-      return;
+  function handleAdminLogin(cred) {
+    if (
+      cred.username === ADMIN_CONFIG.username &&
+      cred.password === ADMIN_CONFIG.password
+    ) {
+      window.sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+      setIsAdminAuthed(true);
+      setLoginError("");
+    } else {
+      setLoginError("Invalid credentials provided.");
     }
-
-    window.sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-    setIsAdminAuthed(true);
-    setLoginError("");
   }
 
   function handleLogout() {
     window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
     setIsAdminAuthed(false);
-    setEditingId("");
-    setFormState(EMPTY_FORM);
     navigate("home");
   }
 
-  function handlePortalSubmit(event) {
-    event.preventDefault();
-
+  function handlePortalSubmit(e) {
+    e.preventDefault();
     const normalized = normalizePortal(
-      {
-        ...formState,
-        id: editingId || createSlug(formState.title),
-      },
+      { ...formState, id: editingId || createSlug(formState.title) },
       portals.length,
     );
-
     if (editingId) {
-      setPortals((current) =>
-        current.map((portal) =>
-          portal.id === editingId ? normalized : portal,
-        ),
+      setPortals((curr) =>
+        curr.map((p) => (p.id === editingId ? normalized : p)),
       );
     } else {
-      const exists = portals.some((portal) => portal.id === normalized.id);
-      const nextPortal = exists
-        ? { ...normalized, id: `${normalized.id}-${Date.now()}` }
-        : normalized;
-
-      setPortals((current) => [...current, nextPortal]);
+      setPortals((curr) => [...curr, normalized]);
     }
-
-    setEditingId("");
-    setFormState(EMPTY_FORM);
-  }
-
-  function handleDeletePortal(id) {
-    setPortals((current) => current.filter((portal) => portal.id !== id));
-
-    if (editingId === id) {
-      setEditingId("");
-      setFormState(EMPTY_FORM);
-    }
-  }
-
-  function handleResetDefaults() {
-    setPortals(DEFAULT_PORTAL_LINKS.map(normalizePortal));
     setEditingId("");
     setFormState(EMPTY_FORM);
   }
 
   return (
     <main
-      className={`relative min-h-screen overflow-hidden transition-colors duration-300 ${styles.shell}`}
+      className={`relative min-h-screen overflow-x-hidden transition-colors duration-300 pb-20 ${styles.shell}`}
     >
       <div
-        className={`pointer-events-none absolute inset-0 bg-grid bg-[size:48px_48px] ${styles.grid}`}
+        className={`pointer-events-none absolute inset-0 bg-grid bg-[size:60px_60px] ${styles.grid}`}
       />
       <div
-        className={`pointer-events-none absolute inset-x-0 top-0 h-[440px] ${styles.topGlow}`}
-      />
-      <div
-        className={`pointer-events-none absolute -left-16 top-20 h-[240px] w-[240px] rounded-full blur-3xl ${styles.leftGlow}`}
-      />
-      <div
-        className={`pointer-events-none absolute bottom-0 right-0 h-[260px] w-[260px] rounded-full blur-3xl ${styles.rightGlow}`}
+        className={`pointer-events-none absolute inset-x-0 top-0 h-[600px] ${styles.topGlow}`}
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 py-8 sm:px-8 lg:px-10">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-6 py-10 sm:px-12 lg:px-16">
         <header
-          className={`rounded-[36px] border px-5 py-6 backdrop-blur transition-colors duration-300 sm:px-6 ${styles.header}`}
+          className={`rounded-[48px] border px-8 py-10 backdrop-blur transition-colors duration-300 sm:px-12 ${styles.header}`}
         >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-center gap-5">
+          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-10">
               <LogoMark styles={styles} theme={theme} />
-
-              <div className="max-w-xl">
+              <div className="max-w-3xl">
                 <p
-                  className={`font-mono text-[11px] uppercase tracking-[0.24em] ${styles.overline}`}
+                  className={`font-mono text-[12px] uppercase tracking-[0.24em] ${styles.overline}`}
                 >
-                  Internal navigation
+                  Internal Navigation Gateway
                 </p>
                 <h1
-                  className={`mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl ${styles.title}`}
+                  className={`mt-5 font-display text-5xl font-bold tracking-tight sm:text-6xl ${styles.title}`}
                 >
                   {BRAND.projectName}
                 </h1>
                 <p
-                  className={`mt-3 text-sm leading-7 sm:text-base ${styles.body}`}
+                  className={`mt-6 text-lg leading-9 sm:text-xl ${styles.body}`}
                 >
                   {BRAND.description}
                 </p>
               </div>
             </div>
-
-            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <ThemeSwitch theme={theme} setTheme={setTheme} styles={styles} />
-
-              {route === "admin" ? (
+              {route === "admin" && (
                 <button
                   type="button"
                   onClick={() => navigate("home")}
-                  className={`rounded-full border px-4 py-3 font-mono text-[11px] uppercase tracking-[0.22em] transition ${styles.ghostButton}`}
+                  className={`rounded-full border px-8 py-4 font-mono text-[12px] uppercase tracking-[0.22em] transition ${styles.ghostButton}`}
                 >
-                  Back to home
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate("admin")}
-                  className={`rounded-full border font-mono font-semibold uppercase px-6 py-3.5 text-[11px] tracking-[0.22em] transition ${styles.headerAdminButton}`}
-                >
-                  Admin login
+                  Exit Admin
                 </button>
               )}
             </div>
@@ -1094,7 +835,7 @@ export default function App() {
         </header>
 
         {route === "admin" ? (
-          <section className="flex-1 py-10 sm:py-14">
+          <section className="flex-1 py-16">
             {isAdminAuthed ? (
               <AdminEditor
                 portals={portals}
@@ -1104,12 +845,16 @@ export default function App() {
                 formState={formState}
                 setFormState={setFormState}
                 onSubmit={handlePortalSubmit}
-                onDelete={handleDeletePortal}
-                onResetDefaults={handleResetDefaults}
+                onDelete={(id) =>
+                  setPortals((c) => c.filter((p) => p.id !== id))
+                }
+                onResetDefaults={() =>
+                  setPortals(DEFAULT_PORTAL_LINKS.map(normalizePortal))
+                }
                 onLogout={handleLogout}
               />
             ) : (
-              <div className="mx-auto max-w-2xl">
+              <div className="mx-auto max-w-3xl">
                 <AdminLogin
                   styles={styles}
                   onLogin={handleAdminLogin}
@@ -1120,10 +865,10 @@ export default function App() {
           </section>
         ) : (
           <>
-            <section className="pt-10 sm:pt-14">
-              <div className="grid gap-4 sm:grid-cols-3">
+            <section className="pt-16">
+              <div className="grid gap-8 sm:grid-cols-3">
                 <SummaryCard
-                  label="Total pages"
+                  label="Total Portals"
                   value={summary.total}
                   styles={styles}
                 />
@@ -1140,23 +885,20 @@ export default function App() {
               </div>
             </section>
 
-            <section className="flex-1 py-10 sm:py-14">
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                  <p
-                    className={`font-mono text-[11px] uppercase tracking-[0.24em] ${styles.overline}`}
-                  >
-                    Available destinations
-                  </p>
-                  <h2
-                    className={`mt-2 font-display text-2xl font-semibold tracking-tight sm:text-3xl ${styles.title}`}
-                  >
-                    Open the page you need
-                  </h2>
-                </div>
+            <section className="flex-1 py-16">
+              <div className="mb-10">
+                <p
+                  className={`font-mono text-[12px] uppercase tracking-[0.24em] ${styles.overline}`}
+                >
+                  Available Destinations
+                </p>
+                <h2
+                  className={`mt-4 font-display text-4xl font-semibold tracking-tight ${styles.title}`}
+                >
+                  Internal Access Directory
+                </h2>
               </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-10 md:grid-cols-2">
                 {portals.map((portal, index) => (
                   <PortalCard
                     key={portal.id}

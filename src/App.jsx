@@ -13,7 +13,7 @@ const BRAND = {
   projectName: "Employee Gateway",
   description:
     "Select the internal portal you need and navigate quickly from a single central company hub.",
-  logoSrc: "/teampl.png",
+  logoSrc: "/timpl.png",
   logoAlt: "Company logo",
 };
 
@@ -98,6 +98,30 @@ const STATUS_STYLES = {
   },
 };
 
+const SUMMARY_CHIP_STYLES = {
+  total: {
+    wrap:
+      "border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-900",
+    label: "text-blue-700",
+    value: "text-blue-950",
+    dot: "bg-blue-500",
+  },
+  online: {
+    wrap:
+      "border-emerald-200 bg-gradient-to-r from-emerald-50 to-lime-50 text-emerald-900",
+    label: "text-emerald-700",
+    value: "text-emerald-950",
+    dot: "bg-emerald-500",
+  },
+  maintenance: {
+    wrap:
+      "border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-900",
+    label: "text-amber-700",
+    value: "text-amber-950",
+    dot: "bg-amber-500",
+  },
+};
+
 // Helper Functions
 function getInitialRoute() {
   if (typeof window === "undefined") return "home";
@@ -128,13 +152,25 @@ function normalizePortal(portal, index = 0) {
   };
 }
 
+function mergeWithDefaultPortals(portals) {
+  const normalizedDefaults = DEFAULT_PORTAL_LINKS.map(normalizePortal);
+  const normalizedPortals = portals.map(normalizePortal);
+  const byId = new Map(normalizedDefaults.map((portal) => [portal.id, portal]));
+
+  normalizedPortals.forEach((portal) => {
+    byId.set(portal.id, portal);
+  });
+
+  return Array.from(byId.values());
+}
+
 function loadPortals() {
   if (typeof window === "undefined")
     return DEFAULT_PORTAL_LINKS.map(normalizePortal);
   try {
     const stored = window.localStorage.getItem(PORTALS_STORAGE_KEY);
     return stored
-      ? JSON.parse(stored).map(normalizePortal)
+      ? mergeWithDefaultPortals(JSON.parse(stored))
       : DEFAULT_PORTAL_LINKS.map(normalizePortal);
   } catch {
     return DEFAULT_PORTAL_LINKS.map(normalizePortal);
@@ -142,36 +178,54 @@ function loadPortals() {
 }
 
 // Components
-function LogoMark() {
+function getPortalGridClass(count) {
+  if (count >= 8) return "sm:grid-cols-2 lg:grid-cols-4";
+  if (count >= 6) return "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3";
+  if (count >= 3) return "sm:grid-cols-2 xl:grid-cols-3";
+  return "sm:grid-cols-2";
+}
+
+function LogoMark({ compact = false }) {
   return (
     <div
-      className={`relative flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-[32px] border sm:h-44 sm:w-44 ${STYLES.logoWrap}`}
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden border ${
+        compact
+          ? "h-24 w-24 rounded-[28px] sm:h-28 sm:w-28"
+          : "h-40 w-40 rounded-[32px] sm:h-44 sm:w-44"
+      } ${STYLES.logoWrap}`}
     >
       <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),transparent_58%)]" />
       <div
-        className={`absolute inset-[8px] rounded-[24px] border ${STYLES.logoInset}`}
+        className={`absolute ${
+          compact ? "inset-[7px] rounded-[22px]" : "inset-[8px] rounded-[24px]"
+        } border ${STYLES.logoInset}`}
       />
       <img
         src={BRAND.logoSrc}
         alt={BRAND.logoAlt}
-        className="relative z-10 h-32 w-32 object-contain sm:h-36 sm:w-36"
+        className={`relative z-10 object-contain ${
+          compact ? "h-16 w-16 sm:h-20 sm:w-20" : "h-32 w-32 sm:h-36 sm:w-36"
+        }`}
       />
     </div>
   );
 }
 
-function SummaryCard({ label, value }) {
+function SummaryChip({ label, value, tone }) {
+  const toneStyle = SUMMARY_CHIP_STYLES[tone];
+
   return (
     <div
-      className={`rounded-[32px] border px-8 py-7 backdrop-blur transition-colors duration-300 ${STYLES.summaryCard}`}
+      className={`inline-flex min-w-[150px] items-center gap-3 rounded-full border px-4 py-3 backdrop-blur transition-colors duration-300 sm:px-5 ${STYLES.summaryCard} ${toneStyle.wrap}`}
     >
+      <span className={`h-2.5 w-2.5 rounded-full ${toneStyle.dot}`} />
       <p
-        className={`font-mono text-[12px] uppercase tracking-[0.22em] ${STYLES.summaryLabel}`}
+        className={`font-mono text-[10px] uppercase tracking-[0.2em] ${toneStyle.label}`}
       >
         {label}
       </p>
       <p
-        className={`mt-3 font-display text-4xl font-semibold ${STYLES.summaryValue}`}
+        className={`ml-auto font-display text-lg font-semibold sm:text-xl ${toneStyle.value}`}
       >
         {value}
       </p>
@@ -189,9 +243,9 @@ function PortalCard({ portal, index }) {
       href={isOnline ? portal.href : undefined}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group relative overflow-hidden rounded-[40px] border p-8 backdrop-blur transition duration-300 sm:p-10 ${
+      className={`group relative h-full overflow-hidden rounded-[28px] border p-5 backdrop-blur transition duration-300 sm:p-6 ${
         isOnline
-          ? "cursor-pointer hover:-translate-y-2 hover:shadow-[0_30px_60px_rgba(15,23,42,0.15)]"
+          ? "cursor-pointer hover:-translate-y-1.5 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]"
           : "cursor-not-allowed opacity-90 pointer-events-none"
       } ${STYLES.card} ${tone.border}`}
     >
@@ -202,62 +256,62 @@ function PortalCard({ portal, index }) {
         className={`pointer-events-none absolute inset-x-0 top-0 h-px ${STYLES.cardTopLine}`}
       />
       <div
-        className={`pointer-events-none absolute left-10 top-0 h-2 w-32 rounded-b-full ${STYLES.cardCap}`}
+        className={`pointer-events-none absolute left-6 top-0 h-2 w-20 rounded-b-full ${STYLES.cardCap}`}
       />
 
-      <div className="relative flex h-full flex-col gap-10">
-        <div className="flex items-start justify-between gap-6">
-          <div>
+      <div className="relative flex h-full flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <p
-              className={`font-mono text-[12px] uppercase tracking-[0.24em] ${STYLES.overline}`}
+              className={`font-mono text-[10px] uppercase tracking-[0.2em] ${STYLES.overline}`}
             >
               {portal.eyebrow}
             </p>
             <h2
-              className={`mt-4 font-display text-4xl font-semibold tracking-tight ${STYLES.title}`}
+              className={`mt-2 text-balance font-display text-2xl font-semibold tracking-tight xl:text-[1.7rem] ${STYLES.title}`}
             >
               {portal.title}
             </h2>
           </div>
-          <div className="flex flex-col items-end gap-3">
+          <div className="flex shrink-0 flex-col items-end gap-2">
             <div
-              className={`rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.2em] ${STYLES.cardBadge}`}
+              className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardBadge}`}
             >
               {(index + 1).toString().padStart(2, "0")}
             </div>
             <div
-              className={`inline-flex items-center gap-2.5 rounded-full border px-4 py-2 font-mono text-[12px] uppercase tracking-[0.18em] ${status.badge}`}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] ${status.badge}`}
             >
-              <span className={`h-2.5 w-2.5 rounded-full ${status.dot}`} />
+              <span className={`h-2 w-2 rounded-full ${status.dot}`} />
               {status.label}
             </div>
           </div>
         </div>
         <p
-          className={`max-w-2xl text-base leading-8 sm:text-lg sm:leading-9 ${STYLES.cardText}`}
+          className={`text-sm leading-6 sm:text-[15px] sm:leading-6 ${STYLES.cardText}`}
         >
           {portal.summary}
         </p>
         <div
-          className={`mt-auto flex items-center justify-between gap-6 border-t pt-7 ${STYLES.cardBorder}`}
+          className={`mt-auto flex items-center justify-between gap-4 border-t pt-4 ${STYLES.cardBorder}`}
         >
           <span
-            className={`font-mono text-[12px] uppercase tracking-[0.22em] ${STYLES.cardMeta}`}
+            className={`font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardMeta}`}
           >
             {isOnline ? "Available" : "Maintenance"}
           </span>
           {isOnline ? (
             <span
-              className={`inline-flex items-center gap-4 text-base font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}
+              className={`inline-flex items-center gap-3 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}
             >
-              <span>{portal.action}</span>
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border text-lg leading-none">
+              <span className="max-w-[11rem] truncate">{portal.action}</span>
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-base leading-none">
                 {"->"}
               </span>
             </span>
           ) : (
             <span
-              className={`inline-flex items-center gap-3 rounded-full border px-5 py-3 text-base font-semibold ${STYLES.disabledAction}`}
+              className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold ${STYLES.disabledAction}`}
             >
               Paused
             </span>
@@ -475,6 +529,10 @@ export default function App() {
     }),
     [portals],
   );
+  const portalGridClass = useMemo(
+    () => getPortalGridClass(portals.length),
+    [portals.length],
+  );
 
   useEffect(() => {
     window.localStorage.setItem(PORTALS_STORAGE_KEY, JSON.stringify(portals));
@@ -503,39 +561,56 @@ export default function App() {
         className={`pointer-events-none absolute inset-x-0 top-0 h-[600px] ${STYLES.topGlow}`}
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-6 py-10 sm:px-12 lg:px-16">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1680px] flex-col px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
         <header
-          className={`rounded-[48px] border px-8 py-10 backdrop-blur sm:px-12 ${STYLES.header}`}
+          className={`rounded-[36px] border px-5 py-5 backdrop-blur sm:px-7 sm:py-6 ${STYLES.header}`}
         >
-          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-10">
-              <LogoMark />
-              <div className="max-w-3xl">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <LogoMark compact={route === "home"} />
+              <div className="max-w-4xl">
                 <p
-                  className={`font-mono text-[12px] uppercase tracking-[0.24em] ${STYLES.overline}`}
+                  className={`font-mono text-[10px] uppercase tracking-[0.22em] ${STYLES.overline}`}
                 >
                   Internal Navigation Gateway
                 </p>
                 <h1
-                  className={`mt-5 font-display text-5xl font-bold tracking-tight sm:text-6xl ${STYLES.title}`}
+                  className={`mt-2 font-display text-3xl font-bold tracking-tight sm:text-[2.8rem] ${STYLES.title}`}
                 >
                   {BRAND.projectName}
                 </h1>
                 <p
-                  className={`mt-6 text-lg leading-9 sm:text-xl ${STYLES.body}`}
+                  className={`mt-2 max-w-3xl text-sm leading-6 sm:text-base ${STYLES.body}`}
                 >
                   {BRAND.description}
                 </p>
               </div>
             </div>
-            {route === "admin" && (
-              <button
-                onClick={() => navigate("home")}
-                className={`rounded-full border px-8 py-4 font-mono text-[12px] uppercase tracking-[0.22em] ${STYLES.ghostButton}`}
-              >
-                Exit Admin
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {route === "home" && (
+                <>
+                  <SummaryChip label="Total" value={summary.total} tone="total" />
+                  <SummaryChip
+                    label="Online"
+                    value={summary.online}
+                    tone="online"
+                  />
+                  <SummaryChip
+                    label="Maintenance"
+                    value={summary.maintenance}
+                    tone="maintenance"
+                  />
+                </>
+              )}
+              {route === "admin" && (
+                <button
+                  onClick={() => navigate("home")}
+                  className={`rounded-full border px-6 py-3 font-mono text-[12px] uppercase tracking-[0.22em] ${STYLES.ghostButton}`}
+                >
+                  Exit Admin
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
@@ -594,25 +669,20 @@ export default function App() {
           </section>
         ) : (
           <>
-            <section className="pt-16 grid gap-8 sm:grid-cols-3">
-              <SummaryCard label="Total Portals" value={summary.total} />
-              <SummaryCard label="Online" value={summary.online} />
-              <SummaryCard label="Maintenance" value={summary.maintenance} />
-            </section>
-            <section className="flex-1 py-16">
-              <div className="mb-10">
+            <section className="flex-1 py-4 sm:py-5">
+              <div className="mb-4 flex flex-col gap-1 sm:mb-5">
                 <p
-                  className={`font-mono text-[12px] uppercase tracking-[0.24em] ${STYLES.overline}`}
+                  className={`font-mono text-[10px] uppercase tracking-[0.22em] ${STYLES.overline}`}
                 >
                   Available Destinations
                 </p>
                 <h2
-                  className={`mt-4 font-display text-4xl font-semibold tracking-tight ${STYLES.title}`}
+                  className={`font-display text-2xl font-semibold tracking-tight sm:text-3xl ${STYLES.title}`}
                 >
                   Internal Access Directory
                 </h2>
               </div>
-              <div className="grid gap-10 md:grid-cols-2">
+              <div className={`grid auto-rows-fr gap-4 ${portalGridClass}`}>
                 {portals.map((portal, index) => (
                   <PortalCard key={portal.id} portal={portal} index={index} />
                 ))}

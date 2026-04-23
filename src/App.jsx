@@ -190,21 +190,23 @@ function LogoMark({ compact = false }) {
     <div
       className={`relative flex shrink-0 items-center justify-center overflow-hidden border ${
         compact
-          ? "h-24 w-24 rounded-[28px] sm:h-28 sm:w-28"
+          ? "h-40 w-40 rounded-[32px] sm:h-44 sm:w-44"
           : "h-40 w-40 rounded-[32px] sm:h-44 sm:w-44"
       } ${STYLES.logoWrap}`}
     >
       <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),transparent_58%)]" />
       <div
         className={`absolute ${
-          compact ? "inset-[7px] rounded-[22px]" : "inset-[8px] rounded-[24px]"
+          compact ? "inset-[3px] rounded-[28px]" : "inset-[8px] rounded-[28px]"
         } border ${STYLES.logoInset}`}
       />
       <img
         src={BRAND.logoSrc}
         alt={BRAND.logoAlt}
         className={`relative z-10 object-contain ${
-          compact ? "h-16 w-16 sm:h-20 sm:w-20" : "h-32 w-32 sm:h-36 sm:w-36"
+          compact
+            ? "h-[7.75rem] w-[7.75rem] sm:h-[8.75rem] sm:w-[8.75rem]"
+            : "h-32 w-32 sm:h-36 sm:w-36"
         }`}
       />
     </div>
@@ -563,30 +565,30 @@ export default function App() {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1680px] flex-col px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
         <header
-          className={`rounded-[36px] border px-5 py-5 backdrop-blur sm:px-7 sm:py-6 ${STYLES.header}`}
+          className={`rounded-[32px] border px-4 py-3.5 backdrop-blur sm:px-5 sm:py-4 ${STYLES.header}`}
         >
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4">
               <LogoMark compact={route === "home"} />
               <div className="max-w-4xl">
                 <p
-                  className={`font-mono text-[10px] uppercase tracking-[0.22em] ${STYLES.overline}`}
+                  className={`font-mono text-[9px] uppercase tracking-[0.2em] ${STYLES.overline}`}
                 >
                   Internal Navigation Gateway
                 </p>
                 <h1
-                  className={`mt-2 font-display text-3xl font-bold tracking-tight sm:text-[2.8rem] ${STYLES.title}`}
+                  className={`mt-1 font-display text-[2rem] font-bold tracking-tight sm:text-[2.55rem] ${STYLES.title}`}
                 >
                   {BRAND.projectName}
                 </h1>
                 <p
-                  className={`mt-2 max-w-3xl text-sm leading-6 sm:text-base ${STYLES.body}`}
+                  className={`mt-1 max-w-3xl text-[14px] leading-5 sm:text-[15px] sm:leading-6 ${STYLES.body}`}
                 >
                   {BRAND.description}
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               {route === "home" && (
                 <>
                   <SummaryChip label="Total" value={summary.total} tone="total" />

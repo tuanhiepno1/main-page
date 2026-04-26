@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build: ./server
+    environment:
+      - PORT=3000
+      - DATA_DIR=/app/data
+      - ADMIN_USERNAME=${VITE_ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${VITE_ADMIN_PASSWORD}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

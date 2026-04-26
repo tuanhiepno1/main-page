@@ -6,8 +6,9 @@ import {
   PORTAL_TONE_OPTIONS,
 } from "./data/portalLinks";
 
-const PORTALS_STORAGE_KEY = "employee-gateway-portals";
 const ADMIN_SESSION_KEY = "employee-gateway-admin-session";
+const ADMIN_AUTH_KEY = "employee-gateway-admin-auth";
+const PORTALS_API = "/api/portals";
 
 const BRAND = {
   projectName: "Employee Gateway",
@@ -152,37 +153,28 @@ function normalizePortal(portal, index = 0) {
   };
 }
 
-function mergeWithDefaultPortals(portals) {
-  const normalizedDefaults = DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  const normalizedPortals = portals.map(normalizePortal);
-  const byId = new Map(normalizedDefaults.map((portal) => [portal.id, portal]));
-
-  normalizedPortals.forEach((portal) => {
-    byId.set(portal.id, portal);
-  });
-
-  return Array.from(byId.values());
+async function fetchPortals() {
+  const res = await fetch(PORTALS_API, { cache: "no-store" });
+  if (!res.ok) throw new Error(`GET ${PORTALS_API} -> ${res.status}`);
+  const data = await res.json();
+  return (Array.isArray(data) ? data : []).map(normalizePortal);
 }
 
-function loadPortals() {
-  if (typeof window === "undefined")
-    return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  try {
-    const stored = window.localStorage.getItem(PORTALS_STORAGE_KEY);
-    return stored
-      ? mergeWithDefaultPortals(JSON.parse(stored))
-      : DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  } catch {
-    return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  }
+async function savePortals(portals, authHeader) {
+  const res = await fetch(PORTALS_API, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authHeader,
+    },
+    body: JSON.stringify(portals),
+  });
+  if (!res.ok) throw new Error(`PUT ${PORTALS_API} -> ${res.status}`);
 }
 
 // Components
-function getPortalGridClass(count) {
-  if (count >= 8) return "sm:grid-cols-2 lg:grid-cols-4";
-  if (count >= 6) return "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3";
-  if (count >= 3) return "sm:grid-cols-2 xl:grid-cols-3";
-  return "sm:grid-cols-2";
+function getPortalGridClass() {
+  return "sm:grid-cols-2 lg:grid-cols-4";
 }
 
 function LogoMark({ compact = false }) {
@@ -262,7 +254,7 @@ function PortalCard({ portal, index }) {
       />
 
       <div className="relative flex h-full flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex h-[100px] items-start justify-between gap-4 overflow-hidden">
           <div className="min-w-0">
             <p
               className={`font-mono text-[10px] uppercase tracking-[0.2em] ${STYLES.overline}`}
@@ -270,7 +262,7 @@ function PortalCard({ portal, index }) {
               {portal.eyebrow}
             </p>
             <h2
-              className={`mt-2 text-balance font-display text-2xl font-semibold tracking-tight xl:text-[1.7rem] ${STYLES.title}`}
+              className={`mt-2 line-clamp-2 font-display text-2xl font-semibold tracking-tight xl:text-[1.7rem] ${STYLES.title}`}
             >
               {portal.title}
             </h2>
@@ -294,31 +286,6 @@ function PortalCard({ portal, index }) {
         >
           {portal.summary}
         </p>
-        <div
-          className={`mt-auto flex items-center justify-between gap-4 border-t pt-4 ${STYLES.cardBorder}`}
-        >
-          <span
-            className={`font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardMeta}`}
-          >
-            {isOnline ? "Available" : "Maintenance"}
-          </span>
-          {isOnline ? (
-            <span
-              className={`inline-flex items-center gap-3 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}
-            >
-              <span className="max-w-[11rem] truncate">{portal.action}</span>
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-base leading-none">
-                {"->"}
-              </span>
-            </span>
-          ) : (
-            <span
-              className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold ${STYLES.disabledAction}`}
-            >
-              Paused
-            </span>
-          )}
-        </div>
       </div>
     </a>
   );
@@ -399,11 +366,17 @@ function AdminEditor({
   onSubmit,
   onDelete,
   onLogout,
+  saveError,
 }) {
   const isEditing = Boolean(editingId);
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
       <section className={`rounded-[40px] border p-10 sm:p-14 ${STYLES.panel}`}>
+        {saveError && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            {saveError}
+          </div>
+        )}
         <div className="flex items-start justify-between gap-6">
           <h2 className={`font-display text-4xl font-semibold ${STYLES.title}`}>
             {isEditing ? "Update Portal" : "Add Portal"}
@@ -444,26 +417,15 @@ function AdminEditor({
             className={`w-full rounded-2xl border px-5 py-4 min-h-[120px] ${STYLES.input}`}
             placeholder="Description"
           />
-          <div className="grid gap-6 sm:grid-cols-2">
-            <input
-              type="text"
-              value={formState.href}
-              onChange={(e) =>
-                setFormState((c) => ({ ...c, href: e.target.value }))
-              }
-              className={`w-full rounded-2xl border px-5 py-4 ${STYLES.input}`}
-              placeholder="URL Path"
-            />
-            <input
-              type="text"
-              value={formState.action}
-              onChange={(e) =>
-                setFormState((c) => ({ ...c, action: e.target.value }))
-              }
-              className={`w-full rounded-2xl border px-5 py-4 ${STYLES.input}`}
-              placeholder="Action Text"
-            />
-          </div>
+          <input
+            type="text"
+            value={formState.href}
+            onChange={(e) =>
+              setFormState((c) => ({ ...c, href: e.target.value }))
+            }
+            className={`w-full rounded-2xl border px-5 py-4 ${STYLES.input}`}
+            placeholder="URL Path"
+          />
           <button
             type="submit"
             className={`rounded-full border px-8 py-4 font-mono text-[12px] uppercase tracking-[0.22em] ${STYLES.primaryButton}`}
@@ -513,15 +475,34 @@ function AdminEditor({
 // Main App
 export default function App() {
   const [route, setRoute] = useState(getInitialRoute);
-  const [portals, setPortals] = useState(loadPortals);
+  const [portals, setPortals] = useState(() =>
+    DEFAULT_PORTAL_LINKS.map(normalizePortal),
+  );
   const [isAdminAuthed, setIsAdminAuthed] = useState(
     () =>
       typeof window !== "undefined" &&
       window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "true",
   );
+  const [authHeader, setAuthHeader] = useState(() =>
+    typeof window !== "undefined"
+      ? window.sessionStorage.getItem(ADMIN_AUTH_KEY) || ""
+      : "",
+  );
   const [loginError, setLoginError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [editingId, setEditingId] = useState("");
   const [formState, setFormState] = useState(EMPTY_FORM);
+
+  const persist = async (next) => {
+    setPortals(next);
+    try {
+      await savePortals(next, authHeader);
+      setSaveError("");
+    } catch (err) {
+      console.error(err);
+      setSaveError("Save failed. Please sign in again.");
+    }
+  };
 
   const summary = useMemo(
     () => ({
@@ -531,14 +512,16 @@ export default function App() {
     }),
     [portals],
   );
-  const portalGridClass = useMemo(
-    () => getPortalGridClass(portals.length),
-    [portals.length],
-  );
+  const portalGridClass = getPortalGridClass();
 
   useEffect(() => {
-    window.localStorage.setItem(PORTALS_STORAGE_KEY, JSON.stringify(portals));
-  }, [portals]);
+    try {
+      window.localStorage.removeItem("employee-gateway-portals");
+    } catch {}
+    fetchPortals()
+      .then(setPortals)
+      .catch((err) => console.error("failed to load portals", err));
+  }, []);
 
   useEffect(() => {
     const handlePopState = () =>
@@ -554,7 +537,7 @@ export default function App() {
 
   return (
     <main
-      className={`relative min-h-screen overflow-x-hidden transition-colors duration-300 pb-20 ${STYLES.shell}`}
+      className={`relative h-screen overflow-hidden transition-colors duration-300 ${STYLES.shell}`}
     >
       <div
         className={`pointer-events-none absolute inset-0 bg-grid bg-[size:60px_60px] ${STYLES.grid}`}
@@ -563,7 +546,7 @@ export default function App() {
         className={`pointer-events-none absolute inset-x-0 top-0 h-[600px] ${STYLES.topGlow}`}
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1680px] flex-col px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
+      <div className="relative mx-auto flex h-full w-full max-w-[1680px] flex-col px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
         <header
           className={`rounded-[32px] border px-4 py-3.5 backdrop-blur sm:px-5 sm:py-4 ${STYLES.header}`}
         >
@@ -617,7 +600,7 @@ export default function App() {
         </header>
 
         {route === "admin" ? (
-          <section className="flex-1 py-16">
+          <section className="flex-1 min-h-0 overflow-y-auto py-16">
             {isAdminAuthed ? (
               <AdminEditor
                 portals={portals}
@@ -625,6 +608,7 @@ export default function App() {
                 setEditingId={setEditingId}
                 formState={formState}
                 setFormState={setFormState}
+                saveError={saveError}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const normalized = normalizePortal(
@@ -634,19 +618,22 @@ export default function App() {
                     },
                     portals.length,
                   );
-                  setPortals((curr) =>
-                    editingId
-                      ? curr.map((p) => (p.id === editingId ? normalized : p))
-                      : [...curr, normalized],
-                  );
+                  const next = editingId
+                    ? portals.map((p) =>
+                        p.id === editingId ? normalized : p,
+                      )
+                    : [...portals, normalized];
+                  persist(next);
                   setEditingId("");
                   setFormState(EMPTY_FORM);
                 }}
                 onDelete={(id) =>
-                  setPortals((c) => c.filter((p) => p.id !== id))
+                  persist(portals.filter((p) => p.id !== id))
                 }
                 onLogout={() => {
                   window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+                  window.sessionStorage.removeItem(ADMIN_AUTH_KEY);
+                  setAuthHeader("");
                   setIsAdminAuthed(false);
                   navigate("home");
                 }}
@@ -659,7 +646,12 @@ export default function App() {
                       cred.username === ADMIN_CONFIG.username &&
                       cred.password === ADMIN_CONFIG.password
                     ) {
+                      const header =
+                        "Basic " +
+                        btoa(`${cred.username}:${cred.password}`);
                       window.sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+                      window.sessionStorage.setItem(ADMIN_AUTH_KEY, header);
+                      setAuthHeader(header);
                       setIsAdminAuthed(true);
                       setLoginError("");
                     } else setLoginError("Invalid credentials.");
@@ -671,7 +663,7 @@ export default function App() {
           </section>
         ) : (
           <>
-            <section className="flex-1 py-4 sm:py-5">
+            <section className="py-4 sm:py-5">
               <div className="mb-4 flex flex-col gap-1 sm:mb-5">
                 <p
                   className={`font-mono text-[10px] uppercase tracking-[0.22em] ${STYLES.overline}`}
@@ -684,7 +676,7 @@ export default function App() {
                   Internal Access Directory
                 </h2>
               </div>
-              <div className={`grid auto-rows-fr gap-4 ${portalGridClass}`}>
+              <div className={`grid auto-rows-[200px] gap-2 ${portalGridClass}`}>
                 {portals.map((portal, index) => (
                   <PortalCard key={portal.id} portal={portal} index={index} />
                 ))}

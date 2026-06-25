@@ -35,6 +35,15 @@ a {
   min-height: 100vh;
 }
 
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 ::selection {
   background: rgba(37, 99, 235, 0.16);
   color: #0f172a;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ADMIN_CONFIG,
   DEFAULT_PORTAL_LINKS,
+  SAMPLE_PORTAL_LINKS,
   PORTAL_STATUS_OPTIONS,
   PORTAL_TONE_OPTIONS,
 } from "./data/portalLinks";
@@ -240,6 +241,7 @@ function PortalCard({ portal, index }) {
   const tone = TONE_STYLES[portal.tone];
   const status = STATUS_STYLES[portal.status];
   const isOnline = portal.status === "online";
+  const hasOwner = portal.owner || portal.subOwner;
 
   return (
     <a
@@ -252,9 +254,11 @@ function PortalCard({ portal, index }) {
           : "cursor-not-allowed opacity-90 pointer-events-none"
       } ${STYLES.card} ${tone.border}`}
     >
+      {/* Background gradient */}
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tone.accent}`}
       />
+      {/* Top decorative line + cap */}
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-px ${STYLES.cardTopLine}`}
       />
@@ -262,90 +266,109 @@ function PortalCard({ portal, index }) {
         className={`pointer-events-none absolute left-6 top-0 h-2 w-20 rounded-b-full ${STYLES.cardCap}`}
       />
 
-      <div className="relative flex h-full flex-col gap-4">
-        <div className="flex h-[100px] items-start justify-between gap-4 overflow-hidden">
+      <div className="relative flex h-full flex-col gap-5">
+        {/* ── Header: eyebrow + title + badges ── */}
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p
-              className={`font-mono text-[10px] uppercase tracking-[0.2em] ${STYLES.overline}`}
-            >
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
               {portal.eyebrow}
             </p>
-            <h2
-              className={`mt-2 line-clamp-2 font-display text-2xl font-semibold tracking-tight xl:text-[1.7rem] ${STYLES.title}`}
-            >
+            <h2 className="mt-1.5 font-display text-xl font-bold leading-tight tracking-tight text-slate-950 sm:text-2xl">
               {portal.title}
             </h2>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
-            <div
-              className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardBadge}`}
-            >
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               {(index + 1).toString().padStart(2, "0")}
-            </div>
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] ${status.badge}`}
-            >
+            </span>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${status.badge}`}>
               <span className={`h-2 w-2 rounded-full ${status.dot}`} />
               {status.label}
-            </div>
+            </span>
           </div>
         </div>
-        <p
-          className={`text-sm leading-6 sm:text-[15px] sm:leading-6 ${STYLES.cardText}`}
-        >
+
+        {/* ── Description ── */}
+        <p className="text-sm leading-relaxed text-slate-700 sm:text-[15px]">
           {portal.summary}
         </p>
-        <div className="mt-auto pt-2">
-          <div
-            className={`flex items-center justify-between gap-4 border-t pt-4 ${STYLES.cardBorder}`}
-          >
-            <span
-              className={`font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardMeta}`}
-            >
+
+        {/* ── Owner / Sub-owner section ── */}
+        {hasOwner && (
+          <div className="mt-auto space-y-3">
+            {/* Action bar */}
+            <div className={`flex items-center justify-between gap-3 border-t pt-4 ${STYLES.cardBorder}`}>
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                {isOnline ? "Available" : "Maintenance"}
+              </span>
+              {isOnline ? (
+                <span className={`inline-flex items-center gap-2 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}>
+                  <span className="max-w-[10rem] truncate">{portal.action}</span>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-base leading-none">
+                    &#8599;
+                  </span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-500">
+                  Paused
+                </span>
+              )}
+            </div>
+
+            {/* Contact cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Owner */}
+              <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white/70 p-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Owner
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                  {portal.owner || "—"}
+                </p>
+                {portal.contact && (
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {portal.contact}
+                  </p>
+                )}
+              </div>
+              {/* Sub-owner */}
+              <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white/70 p-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Sub-owner
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                  {portal.subOwner || "—"}
+                </p>
+                {portal.subContact && (
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {portal.subContact}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback when no owner info */}
+        {!hasOwner && (
+          <div className={`mt-auto flex items-center justify-between gap-3 border-t pt-4 ${STYLES.cardBorder}`}>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
               {isOnline ? "Available" : "Maintenance"}
             </span>
             {isOnline ? (
-              <span
-                className={`inline-flex items-center gap-3 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}
-              >
-                <span className="max-w-[11rem] truncate">{portal.action}</span>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-base leading-none">
-                  {"->"}
+              <span className={`inline-flex items-center gap-2 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}>
+                <span className="max-w-[10rem] truncate">{portal.action}</span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-base leading-none">
+                  &#8599;
                 </span>
               </span>
             ) : (
-              <span
-                className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold ${STYLES.disabledAction}`}
-              >
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-500">
                 Paused
               </span>
             )}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3">
-            <div className="min-w-0">
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-400">
-                Owner
-              </p>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-800">
-                {portal.owner || "Not assigned"}
-              </p>
-              <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                {portal.contact || "No email"}
-              </p>
-            </div>
-            <div className="min-w-0 border-l border-slate-200 pl-3">
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-400">
-                Sub-owner
-              </p>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-800">
-                {portal.subOwner || "Not assigned"}
-              </p>
-              <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                {portal.subContact || "No email"}
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </a>
   );
@@ -1041,7 +1064,7 @@ function AdminEditor({
 export default function App() {
   const [route, setRoute] = useState(getInitialRoute);
   const [portals, setPortals] = useState(() =>
-    DEFAULT_PORTAL_LINKS.map(normalizePortal),
+    (import.meta.env.DEV ? SAMPLE_PORTAL_LINKS : DEFAULT_PORTAL_LINKS).map(normalizePortal),
   );
   const [isAdminAuthed, setIsAdminAuthed] = useState(
     () =>
@@ -1104,7 +1127,7 @@ export default function App() {
 
   return (
     <main
-      className={`relative h-screen overflow-hidden transition-colors duration-300 ${STYLES.shell}`}
+      className={`scrollbar-hidden relative h-screen overflow-y-auto transition-colors duration-300 ${STYLES.shell}`}
     >
       <div
         className={`pointer-events-none absolute inset-0 bg-grid bg-[size:60px_60px] ${STYLES.grid}`}
@@ -1266,7 +1289,7 @@ export default function App() {
                   Internal Access Directory
                 </h2>
               </div>
-              <div className={`grid auto-rows-[200px] gap-2 ${portalGridClass}`}>
+              <div className={`grid auto-rows-auto gap-4 ${portalGridClass}`}>
                 {portals.map((portal, index) => (
                   <PortalCard key={portal.id} portal={portal} index={index} />
                 ))}

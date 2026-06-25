@@ -12,6 +12,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "blue",
     action: "Open Incident Report",
+    owner: "sol",
+    contact: "sol@teampl.com",
+    subOwner: "silver",
+    subContact: "silver@teampl.com",
   },
   {
     id: "safety-observation",
@@ -23,6 +27,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "teal",
     action: "Open Safety Observation",
+    owner: "silver",
+    contact: "silver@teampl.com",
+    subOwner: "capone",
+    subContact: "capone@teampl.com",
   },
   {
     id: "visitor-checkin",
@@ -34,6 +42,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "amber",
     action: "Open Visitor Check-In",
+    owner: "capone",
+    contact: "capone@teampl.com",
+    subOwner: "matthew",
+    subContact: "matthew@teampl.com",
   },
   {
     id: "asset-request",
@@ -45,6 +57,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "blue",
     action: "Open Asset Request",
+    owner: "matthew",
+    contact: "matthew@teampl.com",
+    subOwner: "sol",
+    subContact: "sol@teampl.com",
   },
   {
     id: "training-center",
@@ -56,6 +72,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "teal",
     action: "Open Training Center",
+    owner: "sol",
+    contact: "sol@teampl.com",
+    subOwner: "capone",
+    subContact: "capone@teampl.com",
   },
   {
     id: "leave-management",
@@ -67,6 +87,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "maintenance",
     tone: "amber",
     action: "Open Leave Management",
+    owner: "silver",
+    contact: "silver@teampl.com",
+    subOwner: "matthew",
+    subContact: "matthew@teampl.com",
   },
   {
     id: "payroll-self-service",
@@ -78,6 +102,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "blue",
     action: "Open Payroll",
+    owner: "capone",
+    contact: "capone@teampl.com",
+    subOwner: "silver",
+    subContact: "silver@teampl.com",
   },
   {
     id: "purchase-approval",
@@ -89,6 +117,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "maintenance",
     tone: "amber",
     action: "Open Purchase Approval",
+    owner: "matthew",
+    contact: "matthew@teampl.com",
+    subOwner: "sol",
+    subContact: "sol@teampl.com",
   },
   {
     id: "fleet-booking",
@@ -100,6 +132,10 @@ export const DEFAULT_PORTAL_LINKS = [
     status: "online",
     tone: "teal",
     action: "Open Fleet Booking",
+    owner: "sol",
+    contact: "sol@teampl.com",
+    subOwner: "matthew",
+    subContact: "matthew@teampl.com",
   },
 ];
 

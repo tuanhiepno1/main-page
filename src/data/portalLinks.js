@@ -143,8 +143,8 @@ export const PORTAL_STATUS_OPTIONS = ["online", "maintenance"];
 export const PORTAL_TONE_OPTIONS = ["blue", "teal", "amber"];
 
 // Frontend-only admin access for local portal management.
-// Replace these values or connect this screen to a real backend auth flow later.
+// Set these via Vite env vars for production: VITE_ADMIN_USER / VITE_ADMIN_PASS
 export const ADMIN_CONFIG = {
-  username: "admin",
-  password: "admin",
+  username: import.meta.env.VITE_ADMIN_USER || "admin",
+  password: import.meta.env.VITE_ADMIN_PASS || "",
 };

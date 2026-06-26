@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ADMIN_CONFIG,
   DEFAULT_PORTAL_LINKS,
   PORTAL_STATUS_OPTIONS,
   PORTAL_TONE_OPTIONS,
 } from "./data/portalLinks";
-import { createIssueReport, validateIssueReport } from "./reportIssueFlow";
+import { createIssueReport, validateIssueReport, buildTicketPayload } from "./reportIssueFlow";
+import { submitTicket } from "./submitTicket";
 
 const PORTALS_STORAGE_KEY = "employee-gateway-portals";
 const VERSION_STORAGE_KEY = "employee-gateway-data-version";
@@ -386,6 +387,10 @@ function IssueReportModal({ portals, onClose }) {
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({});
   const [confirmedReport, setConfirmedReport] = useState(null);
+  const [submissionState, setSubmissionState] = useState("idle"); // idle | submitting | success | error
+  const [submissionError, setSubmissionError] = useState("");
+  const [submittedTicketId, setSubmittedTicketId] = useState("");
+  const [isNewUser, setIsNewUser] = useState(false);
   const dialogRef = useRef(null);
   const selectedProject = useMemo(
     () => portals.find((portal) => portal.id === selectedProjectId),
@@ -408,7 +413,7 @@ function IssueReportModal({ portals, onClose }) {
     };
   }, [onClose]);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validateIssueReport({
       projectId: selectedProjectId,
@@ -419,21 +424,40 @@ function IssueReportModal({ portals, onClose }) {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setConfirmedReport({
-      ...createIssueReport({
-        projectId: selectedProjectId,
-        description,
-        fullName: reporter.email,
-        ...reporter,
-      }),
-      priority,
+    const report = createIssueReport({
+      projectId: selectedProjectId,
+      description,
+      fullName: reporter.email,
+      ...reporter,
     });
+    const payload = buildTicketPayload(
+      { ...report, projectTitle: selectedProject.title },
+      priority,
+    );
+
+    setSubmissionState("submitting");
+    setSubmissionError("");
+
+    const result = await submitTicket(payload);
+    if (result.success) {
+      setSubmittedTicketId(result.ticketId);
+      setIsNewUser(result.isNewUser === true);
+      setConfirmedReport({ ...report, priority });
+      setSubmissionState("success");
+    } else {
+      setSubmissionError(result.error);
+      setSubmissionState("error");
+    }
   };
 
   const selectProject = (projectId) => {
     setSelectedProjectId(projectId);
     setErrors({});
     setConfirmedReport(null);
+    setSubmissionState("idle");
+    setSubmissionError("");
+    setSubmittedTicketId("");
+    setIsNewUser(false);
   };
 
   const updateReporter = (field, value) => {
@@ -445,7 +469,8 @@ function IssueReportModal({ portals, onClose }) {
     selectedProject &&
     reporter.email.trim() &&
     priority &&
-    description.trim(),
+    description.trim() &&
+    submissionState !== "submitting",
   );
 
   return (
@@ -461,7 +486,7 @@ function IssueReportModal({ portals, onClose }) {
         aria-modal="true"
         aria-labelledby="issue-report-title"
         tabIndex={-1}
-        className="relative flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_32px_90px_rgba(15,23,42,0.28)] outline-none sm:rounded-[36px]"
+        className="relative flex max-h-[94vh] w-full max-w-[90rem] flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_32px_90px_rgba(15,23,42,0.28)] outline-none sm:rounded-[36px]"
       >
         <div className="relative shrink-0 overflow-hidden border-b border-slate-200 bg-[linear-gradient(125deg,#eff6ff_0%,#ffffff_48%,#f0fdfa_100%)] px-5 py-5 sm:px-8 sm:py-7">
           <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full border-[32px] border-blue-100/70" />
@@ -555,9 +580,17 @@ function IssueReportModal({ portals, onClose }) {
                 label="Email"
                 value={reporter.email}
                 error={errors.email}
-                placeholder="name@company.com"
+                placeholder="you@example.com — used for ticket tracking"
                 onChange={(value) => updateReporter("email", value)}
               />
+              <div className="flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs leading-5 text-blue-700">
+                <span className="mt-0.5 shrink-0">ℹ️</span>
+                <span>
+                  Enter your real email — we'll send a ticket tracking link and
+                  password setup here. Without it you won't be able to follow up
+                  on your report.
+                </span>
+              </div>
             </div>
           </div>
 
@@ -568,29 +601,103 @@ function IssueReportModal({ portals, onClose }) {
                 : "p-5 sm:p-6 lg:overflow-hidden lg:p-5 xl:p-6"
             }
           >
-            {confirmedReport ? (
+            {submissionState === "submitting" ? (
               <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-8 border-emerald-100 bg-emerald-500 text-2xl font-bold text-white shadow-[0_14px_30px_rgba(16,185,129,0.22)]">
-                  ✓
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border-8 border-blue-100 bg-blue-500 text-white">
+                  <svg className="h-7 w-7 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
                 </div>
-                <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-700">
-                  Frontend preview confirmed
+                <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-blue-700">
+                  Submitting
                 </p>
-                <h3 className="mt-2 font-display text-3xl font-semibold text-slate-950">
-                  Report details are ready
+                <h3 className="mt-2 font-display text-2xl font-semibold text-slate-950">
+                  Creating your ticket...
                 </h3>
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
-                  Your report for <strong>{selectedProject?.title}</strong> has
-                  been prepared. Email delivery is not connected in this UI
-                  phase, so no message was sent.
+                  Sending report to the support team.
                 </p>
-                <div className="mt-6 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left text-sm leading-6 text-slate-600">
-                  “{confirmedReport.description}”
+              </div>
+            ) : submissionState === "error" ? (
+              <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border-8 border-red-100 bg-red-500 text-2xl font-bold text-white">
+                  !
                 </div>
-                <span className="mt-3 rounded-full border border-slate-200 bg-white px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-slate-600">
-                  Priority: {confirmedReport.priority}
-                </span>
+                <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-red-700">
+                  Submission failed
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-semibold text-slate-950">
+                  Could not create ticket
+                </h3>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+                  {submissionError}
+                </p>
                 <div className="mt-7 flex flex-wrap justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${STYLES.primaryButton}`}
+                  >
+                    Retry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${STYLES.ghostButton}`}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : confirmedReport ? (
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border-8 border-emerald-100 bg-emerald-500 text-3xl font-bold text-white shadow-[0_16px_36px_rgba(16,185,129,0.22)]">
+                  ✓
+                </div>
+                <p className="mt-4 font-mono text-xs uppercase tracking-[0.22em] text-emerald-700">
+                  Ticket created
+                </p>
+                <h3 className="mt-1.5 font-display text-4xl font-semibold text-slate-950">
+                  Report submitted successfully
+                </h3>
+                <p className="mt-3 max-w-xl text-base leading-7 text-slate-600">
+                  Your report for <strong>{selectedProject?.title}</strong> has
+                  been created as ticket{" "}
+                  <strong className="text-blue-700">{submittedTicketId}</strong>.
+                </p>
+
+                <div className="mt-5 flex w-full max-w-xl flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 text-left text-base leading-6 text-slate-600">
+                  <span className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 font-mono text-xs uppercase tracking-[0.14em] text-slate-500">
+                    {confirmedReport.priority}
+                  </span>
+                  <span className="truncate">"{confirmedReport.description}"</span>
+                </div>
+
+                {/* Password setup notice — only for new users */}
+                {isNewUser && (
+                <div className="mt-5 w-full max-w-xl rounded-xl border-2 border-amber-200 bg-amber-50/80 px-6 py-5 text-left">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 shrink-0 text-xl">🔑</span>
+                    <div className="min-w-0">
+                      <h4 className="text-base font-semibold text-amber-900">
+                        Set up your account to track this ticket
+                      </h4>
+                      <p className="mt-2 text-base leading-7 text-amber-800">
+                        Check <strong>{reporter.email}</strong> — we sent a link
+                        to set up your password. Once set, you can log in to view
+                        ticket status, chat with support, and submit follow-ups.
+                      </p>
+                      <p className="mt-2.5 text-sm leading-5 text-amber-700">
+                        ⏳ Link expires in 30 min. Already have an account? Just
+                        log in — no setup needed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                )}
+
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -601,15 +708,19 @@ function IssueReportModal({ portals, onClose }) {
                       setPriority("");
                       setDescription("");
                       setConfirmedReport(null);
+                      setSubmissionState("idle");
+                      setSubmissionError("");
+                      setSubmittedTicketId("");
+                      setIsNewUser(false);
                     }}
-                    className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${STYLES.primaryButton}`}
+                    className={`rounded-full border px-7 py-3.5 text-base font-semibold transition ${STYLES.primaryButton}`}
                   >
                     Report another issue
                   </button>
                   <button
                     type="button"
                     onClick={onClose}
-                    className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${STYLES.ghostButton}`}
+                    className={`rounded-full border px-7 py-3.5 text-base font-semibold transition ${STYLES.ghostButton}`}
                   >
                     Close
                   </button>

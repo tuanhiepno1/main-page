@@ -483,7 +483,7 @@ function IssueReportModal({ portals, onClose }) {
         aria-modal="true"
         aria-labelledby="issue-report-title"
         tabIndex={-1}
-        className="relative flex max-h-[94vh] w-full max-w-[90rem] flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_32px_90px_rgba(15,23,42,0.28)] outline-none sm:rounded-[36px]"
+        className="relative flex max-h-[96vh] w-full max-w-[64rem] flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_32px_90px_rgba(15,23,42,0.28)] outline-none sm:rounded-[36px]"
       >
         <div className="relative shrink-0 overflow-hidden border-b border-slate-200 bg-[linear-gradient(125deg,#eff6ff_0%,#ffffff_48%,#f0fdfa_100%)] px-5 py-5 sm:px-8 sm:py-7">
           <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full border-[32px] border-blue-100/70" />

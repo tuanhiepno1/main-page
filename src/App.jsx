@@ -2,16 +2,17 @@
 import {
   ADMIN_CONFIG,
   DEFAULT_PORTAL_LINKS,
+  SAMPLE_PORTAL_LINKS,
   PORTAL_STATUS_OPTIONS,
   PORTAL_TONE_OPTIONS,
 } from "./data/portalLinks";
 import { createIssueReport, validateIssueReport, buildTicketPayload } from "./reportIssueFlow";
 import { submitTicket } from "./submitTicket";
 
-const PORTALS_STORAGE_KEY = "employee-gateway-portals";
-const VERSION_STORAGE_KEY = "employee-gateway-data-version";
-const DATA_VERSION = 2; // bump when data model changes to auto-clear old cache
+
 const ADMIN_SESSION_KEY = "employee-gateway-admin-session";
+const ADMIN_AUTH_KEY = "employee-gateway-admin-auth";
+const PORTALS_API = "/api/portals";
 
 const BRAND = {
   projectName: "Employee Gateway",
@@ -161,49 +162,23 @@ function normalizePortal(portal, index = 0) {
   };
 }
 
-function mergeWithDefaultPortals(portals) {
-  const normalizedDefaults = DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  const byId = new Map(normalizedDefaults.map((p) => [p.id, p]));
-
-  portals.forEach((raw) => {
-    const id = raw.id?.trim() || createSlug(raw.title);
-    const base = byId.get(id);
-    if (base) {
-      // Chỉ ghi đè field có trong stored data gốc (không phải empty do normalize thêm vào)
-      const overlay = {};
-      for (const key of Object.keys(raw)) {
-        const val = raw[key];
-        if (typeof val === "string" ? val.trim() !== "" : val != null) {
-          overlay[key] = val;
-        }
-      }
-      byId.set(id, normalizePortal({ ...base, ...overlay }));
-    } else {
-      byId.set(id, normalizePortal(raw));
-    }
-  });
-
-  return Array.from(byId.values());
+async function fetchPortals() {
+  const res = await fetch(PORTALS_API, { cache: "no-store" });
+  if (!res.ok) throw new Error(`GET ${PORTALS_API} -> ${res.status}`);
+  const data = await res.json();
+  return (Array.isArray(data) ? data : []).map(normalizePortal);
 }
 
-function loadPortals() {
-  if (typeof window === "undefined")
-    return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  try {
-    const storedVersion = window.localStorage.getItem(VERSION_STORAGE_KEY);
-    // Auto-clear old cache when data model changes
-    if (!storedVersion || Number(storedVersion) !== DATA_VERSION) {
-      window.localStorage.removeItem(PORTALS_STORAGE_KEY);
-      window.localStorage.setItem(VERSION_STORAGE_KEY, String(DATA_VERSION));
-      return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-    }
-    const stored = window.localStorage.getItem(PORTALS_STORAGE_KEY);
-    return stored
-      ? mergeWithDefaultPortals(JSON.parse(stored))
-      : DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  } catch {
-    return DEFAULT_PORTAL_LINKS.map(normalizePortal);
-  }
+async function savePortals(portals, authHeader) {
+  const res = await fetch(PORTALS_API, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authHeader,
+    },
+    body: JSON.stringify(portals),
+  });
+  if (!res.ok) throw new Error(`PUT ${PORTALS_API} -> ${res.status}`);
 }
 
 // Components
@@ -267,6 +242,7 @@ function PortalCard({ portal, index }) {
   const tone = TONE_STYLES[portal.tone];
   const status = STATUS_STYLES[portal.status];
   const isOnline = portal.status === "online";
+  const hasOwner = portal.owner || portal.subOwner;
 
   return (
     <a
@@ -279,9 +255,11 @@ function PortalCard({ portal, index }) {
           : "cursor-not-allowed opacity-90 pointer-events-none"
       } ${STYLES.card} ${tone.border}`}
     >
+      {/* Background gradient */}
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tone.accent}`}
       />
+      {/* Top decorative line + cap */}
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-px ${STYLES.cardTopLine}`}
       />
@@ -289,90 +267,109 @@ function PortalCard({ portal, index }) {
         className={`pointer-events-none absolute left-6 top-0 h-2 w-20 rounded-b-full ${STYLES.cardCap}`}
       />
 
-      <div className="relative flex h-full flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
+      <div className="relative flex h-full flex-col gap-5">
+        {/* ── Header: eyebrow + title + badges ── */}
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p
-              className={`font-mono text-[10px] uppercase tracking-[0.2em] ${STYLES.overline}`}
-            >
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
               {portal.eyebrow}
             </p>
-            <h2
-              className={`mt-2 text-balance font-display text-2xl font-semibold tracking-tight xl:text-[1.7rem] ${STYLES.title}`}
-            >
+            <h2 className="mt-1.5 font-display text-xl font-bold leading-tight tracking-tight text-slate-950 sm:text-2xl">
               {portal.title}
             </h2>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
-            <div
-              className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardBadge}`}
-            >
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               {(index + 1).toString().padStart(2, "0")}
-            </div>
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] ${status.badge}`}
-            >
+            </span>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${status.badge}`}>
               <span className={`h-2 w-2 rounded-full ${status.dot}`} />
               {status.label}
-            </div>
+            </span>
           </div>
         </div>
-        <p
-          className={`text-sm leading-6 sm:text-[15px] sm:leading-6 ${STYLES.cardText}`}
-        >
+
+        {/* ── Description ── */}
+        <p className="text-sm leading-relaxed text-slate-700 sm:text-[15px]">
           {portal.summary}
         </p>
-        <div className="mt-auto pt-2">
-          <div
-            className={`flex items-center justify-between gap-4 border-t pt-4 ${STYLES.cardBorder}`}
-          >
-            <span
-              className={`font-mono text-[10px] uppercase tracking-[0.18em] ${STYLES.cardMeta}`}
-            >
+
+        {/* ── Owner / Sub-owner section ── */}
+        {hasOwner && (
+          <div className="mt-auto space-y-3">
+            {/* Action bar */}
+            <div className={`flex items-center justify-between gap-3 border-t pt-4 ${STYLES.cardBorder}`}>
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                {isOnline ? "Available" : "Maintenance"}
+              </span>
+              {isOnline ? (
+                <span className={`inline-flex items-center gap-2 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}>
+                  <span className="max-w-[10rem] truncate">{portal.action}</span>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-base leading-none">
+                    &#8599;
+                  </span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-500">
+                  Paused
+                </span>
+              )}
+            </div>
+
+            {/* Contact cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Owner */}
+              <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white/70 p-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Owner
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                  {portal.owner || "—"}
+                </p>
+                {portal.contact && (
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {portal.contact}
+                  </p>
+                )}
+              </div>
+              {/* Sub-owner */}
+              <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white/70 p-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Sub-owner
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                  {portal.subOwner || "—"}
+                </p>
+                {portal.subContact && (
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {portal.subContact}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback when no owner info */}
+        {!hasOwner && (
+          <div className={`mt-auto flex items-center justify-between gap-3 border-t pt-4 ${STYLES.cardBorder}`}>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
               {isOnline ? "Available" : "Maintenance"}
             </span>
             {isOnline ? (
-              <span
-                className={`inline-flex items-center gap-3 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}
-              >
-                <span className="max-w-[11rem] truncate">{portal.action}</span>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-base leading-none">
-                  {"->"}
+              <span className={`inline-flex items-center gap-2 text-sm font-semibold transition duration-300 ${STYLES.actionBase} ${tone.action}`}>
+                <span className="max-w-[10rem] truncate">{portal.action}</span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-base leading-none">
+                  &#8599;
                 </span>
               </span>
             ) : (
-              <span
-                className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold ${STYLES.disabledAction}`}
-              >
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-500">
                 Paused
               </span>
             )}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3">
-            <div className="min-w-0">
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-400">
-                Owner
-              </p>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-800">
-                {portal.owner || "Not assigned"}
-              </p>
-              <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                {portal.contact || "No email"}
-              </p>
-            </div>
-            <div className="min-w-0 border-l border-slate-200 pl-3">
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-400">
-                Sub-owner
-              </p>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-800">
-                {portal.subOwner || "Not assigned"}
-              </p>
-              <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                {portal.subContact || "No email"}
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </a>
   );
@@ -1017,11 +1014,17 @@ function AdminEditor({
   onSubmit,
   onDelete,
   onLogout,
+  saveError,
 }) {
   const isEditing = Boolean(editingId);
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
       <section className={`rounded-[40px] border p-10 sm:p-14 ${STYLES.panel}`}>
+        {saveError && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            {saveError}
+          </div>
+        )}
         <div className="flex items-start justify-between gap-6">
           <h2 className={`font-display text-4xl font-semibold ${STYLES.title}`}>
             {isEditing ? "Update Portal" : "Add Portal"}
@@ -1171,16 +1174,35 @@ function AdminEditor({
 // Main App
 export default function App() {
   const [route, setRoute] = useState(getInitialRoute);
-  const [portals, setPortals] = useState(loadPortals);
+  const [portals, setPortals] = useState(() =>
+    (import.meta.env.DEV ? SAMPLE_PORTAL_LINKS : DEFAULT_PORTAL_LINKS).map(normalizePortal),
+  );
   const [isAdminAuthed, setIsAdminAuthed] = useState(
     () =>
       typeof window !== "undefined" &&
       window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "true",
   );
+  const [authHeader, setAuthHeader] = useState(() =>
+    typeof window !== "undefined"
+      ? window.sessionStorage.getItem(ADMIN_AUTH_KEY) || ""
+      : "",
+  );
   const [loginError, setLoginError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [editingId, setEditingId] = useState("");
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+
+  const persist = async (next) => {
+    setPortals(next);
+    try {
+      await savePortals(next, authHeader);
+      setSaveError("");
+    } catch (err) {
+      console.error(err);
+      setSaveError("Save failed. Please sign in again.");
+    }
+  };
 
   const summary = useMemo(
     () => ({
@@ -1196,9 +1218,10 @@ export default function App() {
   );
 
   useEffect(() => {
-    window.localStorage.setItem(PORTALS_STORAGE_KEY, JSON.stringify(portals));
-    window.localStorage.setItem(VERSION_STORAGE_KEY, String(DATA_VERSION));
-  }, [portals]);
+    fetchPortals()
+      .then(setPortals)
+      .catch((err) => console.error("failed to load portals", err));
+  }, []);
 
   useEffect(() => {
     const handlePopState = () =>
@@ -1215,7 +1238,7 @@ export default function App() {
 
   return (
     <main
-      className={`relative min-h-screen overflow-x-hidden transition-colors duration-300 pb-20 ${STYLES.shell}`}
+      className={`scrollbar-hidden relative h-screen overflow-y-auto transition-colors duration-300 ${STYLES.shell}`}
     >
       <div
         className={`pointer-events-none absolute inset-0 bg-grid bg-[size:60px_60px] ${STYLES.grid}`}
@@ -1224,7 +1247,7 @@ export default function App() {
         className={`pointer-events-none absolute inset-x-0 top-0 h-[600px] ${STYLES.topGlow}`}
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1680px] flex-col px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
+      <div className="relative mx-auto flex h-full w-full max-w-[1680px] flex-col px-4 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
         <header
           className={`rounded-[32px] border px-4 py-3.5 backdrop-blur sm:px-5 sm:py-4 ${STYLES.header}`}
         >
@@ -1301,7 +1324,7 @@ export default function App() {
         </header>
 
         {route === "admin" ? (
-          <section className="flex-1 py-16">
+          <section className="flex-1 min-h-0 overflow-y-auto py-16">
             {isAdminAuthed ? (
               <AdminEditor
                 portals={portals}
@@ -1309,6 +1332,7 @@ export default function App() {
                 setEditingId={setEditingId}
                 formState={formState}
                 setFormState={setFormState}
+                saveError={saveError}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const normalized = normalizePortal(
@@ -1318,19 +1342,22 @@ export default function App() {
                     },
                     portals.length,
                   );
-                  setPortals((curr) =>
-                    editingId
-                      ? curr.map((p) => (p.id === editingId ? normalized : p))
-                      : [...curr, normalized],
-                  );
+                  const next = editingId
+                    ? portals.map((p) =>
+                        p.id === editingId ? normalized : p,
+                      )
+                    : [...portals, normalized];
+                  persist(next);
                   setEditingId("");
                   setFormState(EMPTY_FORM);
                 }}
                 onDelete={(id) =>
-                  setPortals((c) => c.filter((p) => p.id !== id))
+                  persist(portals.filter((p) => p.id !== id))
                 }
                 onLogout={() => {
                   window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+                  window.sessionStorage.removeItem(ADMIN_AUTH_KEY);
+                  setAuthHeader("");
                   setIsAdminAuthed(false);
                   navigate("home");
                 }}
@@ -1343,7 +1370,12 @@ export default function App() {
                       cred.username === ADMIN_CONFIG.username &&
                       cred.password === ADMIN_CONFIG.password
                     ) {
+                      const header =
+                        "Basic " +
+                        btoa(`${cred.username}:${cred.password}`);
                       window.sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+                      window.sessionStorage.setItem(ADMIN_AUTH_KEY, header);
+                      setAuthHeader(header);
                       setIsAdminAuthed(true);
                       setLoginError("");
                     } else setLoginError("Invalid credentials.");
@@ -1355,7 +1387,7 @@ export default function App() {
           </section>
         ) : (
           <>
-            <section className="flex-1 py-4 sm:py-5">
+            <section className="py-4 sm:py-5">
               <div className="mb-4 flex flex-col gap-1 sm:mb-5">
                 <p
                   className={`font-mono text-[10px] uppercase tracking-[0.22em] ${STYLES.overline}`}
@@ -1368,7 +1400,7 @@ export default function App() {
                   Internal Access Directory
                 </h2>
               </div>
-              <div className={`grid auto-rows-fr gap-4 ${portalGridClass}`}>
+              <div className={`grid auto-rows-auto gap-4 ${portalGridClass}`}>
                 {portals.map((portal, index) => (
                   <PortalCard key={portal.id} portal={portal} index={index} />
                 ))}

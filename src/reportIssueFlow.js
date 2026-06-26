@@ -26,3 +26,20 @@ export function createIssueReport(report) {
     delivery: "preview",
   };
 }
+
+/**
+ * Build the API payload for the Ticket System public endpoint.
+ *
+ * @param {{ projectTitle: string, reporter: { email: string }, description: string }} report
+ * @param {string} priority - Selected priority (critical/high/medium/low)
+ * @returns {{ email: string, subject: string, priority: string, description: string }}
+ */
+export function buildTicketPayload(report, priority) {
+  const subject = `${report.projectTitle} issue`.trim();
+  return {
+    email: report.reporter.email,
+    subject,
+    priority,
+    description: report.description,
+  };
+}
